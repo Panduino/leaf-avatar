@@ -11,7 +11,6 @@ and in the Hall of Fame follow the same choice.
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `AVATAR` | `ASK AT START` | Force `BOY` or `GIRL` to skip Oak's question entirely. A forced value also fixes the fishing poses from boot. |
 | `BACK SIZE` | `MEDIUM` | How large the player stands in battle: `SMALL` 40x40, `MEDIUM` 48x48, `LARGE` 64x64 (Red's exact footprint). Takes effect on the next battle. With the voxel renderer installed, see below. |
 | `ADV. TINT` | `BLUE` | Which pokered-gbc object palette the avatar wears under the ADVANCED colour mode: `BLUE`, `RED`, `GREEN` or `BROWN`. |
 
