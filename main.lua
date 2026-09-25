@@ -48,8 +48,6 @@ local GIRL_PRESETS = { "LEAF", "GREEN", "DAISY" }
 
 return function(mod)
   mod.options:define({
-    { key = "avatar", label = "AVATAR", type = "choice", default = "ask",
-      choices = { { "ASK AT START", "ask" }, { "BOY", "boy" }, { "GIRL", "girl" } } },
     { key = "backsize", label = "BACK SIZE", type = "choice", default = "MEDIUM",
       choices = { { "SMALL", "SMALL" }, { "MEDIUM", "MEDIUM" },
                   { "LARGE", "LARGE" } } },
@@ -108,11 +106,10 @@ return function(mod)
 
   -- ------- which avatar is live
 
-  -- "ask" defers to whatever the intro recorded; a forced option wins, so a
-  -- player who never wants the question can skip it.
+  -- The avatar is chosen once by the intro and then read from the save.
+  -- There is deliberately no mod-menu override: changing character later
+  -- is not supported by this mod.
   local function chosen()
-    local forced = mod.options:get("avatar")
-    if forced == "boy" or forced == "girl" then return forced end
     return mod.save:get("avatar", "boy")
   end
   local function isGirl() return chosen() == "girl" end
@@ -155,15 +152,6 @@ return function(mod)
 
   mod.hooks:wrap("intro.oak_speech.build", function(next, steps, speech)
     steps = next(steps, speech)
-    if mod.options:get("avatar") ~= "ask" then
-      -- the question is skipped, so nothing will fire the answered event:
-      -- dress the speech now if the forced avatar is the girl
-      if isGirl() then
-        speech.steps = steps
-        dressSpeech(speech)
-      end
-      return steps
-    end
     mod.ui.insertStepBefore(steps, "ask_player_name", {
       id = "leaf_avatar_pick",
       kind = "choice",
@@ -186,10 +174,9 @@ return function(mod)
   end)
 
   -- ------- the pics
-  -- player.sprite is the sanctioned per-save seam: content freezes after
-  -- load, but this hook stays live for the whole process, so the pic can
-  -- follow a choice the player makes mid-session.  The catch tutorial's old
-  -- man still fights in the player's place, so `demo` is left alone.
+  -- player.sprite follows the avatar selected during the intro for the rest
+  -- of the save. The catch tutorial's old man still fights in the player's
+  -- place, so `demo` is left alone.
 
   mod.hooks:wrap("player.sprite", function(next, path, ctx)
     path = next(path, ctx)
@@ -249,8 +236,7 @@ return function(mod)
     -- The fishing poses are the one piece the live swap cannot reach: the
     -- Player caches their paths when it is constructed, and reaching into
     -- OverworldState to refresh them is unsupported.  Patching the field
-    -- data here means a forced AVATAR option is correct from boot, and a
-    -- choice made at the intro catches up on the next load.
+    -- data here keeps the saved avatar's fishing poses correct.
     local fx = game.data and game.data.field and game.data.field.overworldFx
     if fx and isGirl() then
       for key, relative in pairs(FISH) do
@@ -263,8 +249,8 @@ return function(mod)
   mod.events:on("save.loaded", function() apply() end)
   mod.events:on("save.created", function() apply() end)
 
-  -- The options manager writes the value and emits this; nothing else re-runs
-  -- apply(), so without it ADV. TINT and BACK SIZE only took effect on the
+  -- The options manager writes its remaining visual settings and emits this;
+  -- nothing else re-runs apply(), so without it ADV. TINT and BACK SIZE only took effect on the
   -- next load.  SpriteRenderer:resolveImage re-reads paletteSource off the
   -- def every frame and getObpImage caches per (path, group), so a new tint
   -- rebuilds the recoloured sheet on the spot -- including under a render
