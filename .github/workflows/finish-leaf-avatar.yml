@@ -1,0 +1,31 @@
+name: Finish leaf avatar extraction
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  finish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract package and replace assets
+        run: |
+          set -e
+          unzip -q leaf_avatar-1.2.0.zip
+          cp -f __assets_override/assets/* leaf_avatar/assets/
+          rm -rf __assets_override leaf_avatar-1.2.0.zip
+          rm -f .github/workflows/finish-leaf-avatar.yml
+
+      - name: Commit final repository
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Extract leaf avatar 1.2.0 and replace assets" || exit 0
+          git push
