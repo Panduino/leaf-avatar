@@ -1,0 +1,16 @@
+{
+  "id": "leaf_avatar",
+  "name": "Choose Your Avatar",
+  "version": "1.2.0",
+  "api": 2,
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "GRAPHICS",
+  "game_version": ">=0.0.0-0 <2.0.0",
+  "priority": 90,
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
+  "affects_link": false,
+  "description": "Adds a boy/girl question to Oak's intro and dresses the player in a female avatar: walking and cycling sheets, fishing poses, battle back pic and front pic, in four DMG shades so every COLORS mode including ADVANCED lights it. Interoperates with the Dramatic Shape voxel renderer."
+}

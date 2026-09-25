@@ -1,0 +1,78 @@
+return {
+  summary = "Oak asks if you are a boy or a girl, and dresses the player to match.",
+  author  = "Christopher",
+  tags    = { "cosmetic", "graphics", "player", "beginner" },
+  differences = {
+    changed = {
+      "Oak's speech gains a BOY / GIRL question before he asks your name.",
+      "The player-name presets become LEAF / GREEN / DAISY when you pick GIRL.",
+      "SPRITE_RED and SPRITE_RED_BIKE are repointed at the female sheets while "
+        .. "the girl avatar is live; the vanilla records are restored on switch back.",
+      "The player's battle back pic and front pic (intro, trainer card, Hall of "
+        .. "Fame) resolve through the player.sprite hook.",
+      "OakSpeech's cached playerPic and walkSheet are repointed when the girl "
+        .. "avatar is live, since resolvePic prefers that cache over the hook.",
+    },
+    added = {
+      "SPRITE_LEAF and SPRITE_LEAF_BIKE, two 16x96 six-frame walking sheets.",
+      "Three 16x8 fishing pose tiles.",
+      "A 56x56 front pic and a 32x32 back pic framed like RedPicBack, with a "
+        .. "battle_sprite_scales entry driven by the BACK SIZE option.",
+      "AVATAR, BACK SIZE and ADV. TINT options, all live -- a mod.options_changed "
+        .. "subscriber re-applies them without a reload.",
+    },
+    known = {
+      "ADV. TINT offers four colours, not eight. PaletteFX.spriteObp resolves "
+        .. "a sprite's palette by looking its bracketed index up in the "
+        .. "pokered-gbc spriteAssignment table, and across all 72 indices that "
+        .. "table only ever yields groups 0-3 (red, blue, green, brown) plus "
+        .. "the random sentinel. The pack's grey, salmon, lime and gold groups "
+        .. "are unreachable that way, and a mod cannot add to the pack -- so "
+        .. "the sheet's lilac and violet palettes have no literal ADVANCED "
+        .. "equivalent. BLUE is the default as the nearest. SGB, OG RED and "
+        .. "the mono modes are unaffected; they colour the sheet themselves.",
+      "The fishing poses follow the avatar from the next load, not instantly. "
+        .. "The Player caches their paths when it is constructed and reaching "
+        .. "into OverworldState to refresh them is unsupported. Forcing the "
+        .. "AVATAR option instead of answering the intro makes them correct "
+        .. "from boot.",
+      "With the voxel renderer installed the back pic can only be 1x or 2x. "
+        .. "That mod rounds every battle scale to a whole number so its camera "
+        .. "solve holds, so SMALL and MEDIUM both land on 1x (32x32) and LARGE "
+        .. "on 2x (64x64); there is no rung between them. Without it the three "
+        .. "sizes are distinct.",
+      "The back pic crops the source pose at the waist, the way RedPicBack "
+        .. "crops Red. The legs in the reference sheet are not drawn in "
+        .. "battle. At MEDIUM it stands 48x48 against Red's 64x64; LARGE is "
+        .. "exactly Red's footprint.",
+      "The source art is a 1x reference sheet with three colour variants that "
+        .. "share one silhouette. Quantising to the four DMG shades collapses "
+        .. "them into a single set, which is correct for this engine but means "
+        .. "the variants are not separately selectable as pixels.",
+      "The overworld swap repoints the merged sprite record at runtime, which "
+        .. "is not a registry write. It is the only seam that works: the "
+        .. "overworld state is pushed before both the intro and save.loaded, so "
+        .. "field.playerSprites is already read by then.",
+    },
+  },
+  credits = {
+    { who = "unattributed fan sprite sheet supplied by the player",
+      for_ = "the female avatar pixel art, resliced and quantised to DMG shades" },
+    { who = "pokered-gbc", for_ = "the ADVANCED-mode SPR_PAL_* object palettes" },
+  },
+  compat = { engine = ">=0.0.0-0 <2.0.0", modApi = 2 },
+  interop = {
+    { mod = "DRAMATIC_SHAPE", tested = "1.3.0", status = "compatible",
+      notes = "No shared hook: this mod takes intro.oak_speech.build and "
+        .. "player.sprite, the voxel renderer takes pokemon.sprite, "
+        .. "ui.options.rows and world.tod. Its billboard pass textures from "
+        .. "SpriteRenderer:resolveImage and meshes per (def.image, frame), so "
+        .. "the swapped sheets and the ADVANCED tint both reach the 3D "
+        .. "characters with no rebuild. Priority is 90 so this loads first, "
+        .. "which is the order the voxel mod documents for sprite-replacing "
+        .. "mods. Sizing of the player's back pic is handed to it: it rounds "
+        .. "every battle scale to a whole number, so this mod floors its own "
+        .. "ask when that mod is present rather than letting a 1.5 round UP "
+        .. "into a 2x player. Covered by a test that loads both together." },
+  },
+}
