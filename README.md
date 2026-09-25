@@ -1,7 +1,7 @@
 # Choose Your Avatar
 
 Oak asks whether you are a boy or a girl during his intro, and the answer
-dresses the player everywhere the engine draws them. This fork modifies the sprite with Leaf sprites from Spriters Resource, created by OmegaZeez
+dresses the player everywhere the engine draws them. This fork modifies the sprite with Leaf sprites from Spriters Resource, created by OmegaZeez. It also gets rid of the options for changing mid save, and locks your choice in like later entries.
 
 Start a new game and answer Oak. The walking and cycling sheets swap the
 moment you answer; the battle back pic and the front pic on the trainer card
