@@ -13,12 +13,6 @@ return function(mod)
     return
   end
 
-  local GameVersion = require("src.core.GameVersion")
-  if GameVersion.isYellow() then
-    mod.log:warn("Alternate Oak Intro is disabled for Pokémon Yellow")
-    return
-  end
-
   local STARTERS = {
     BULBASAUR = {
       rival = "CHARMANDER",
@@ -139,18 +133,18 @@ return function(mod)
     ))
   end
 
+  -- Build the entire alternate sequence from one hook. Keeping all of the
+  -- inserts in the same wrapper avoids ordering ambiguity when other mods also
+  -- wrap intro.oak_speech.build.
   mod.hooks:wrap("intro.oak_speech.build", function(next, steps, speech)
     steps = next(steps, speech)
 
-    -- The player already has a name by this point. Keeping the normal world
-    -- explanation and player-name sequence makes this feel like the same
-    -- intro, just with the Oak's Lab detour removed.
     mod.ui.insertStepAfter(steps, "confirm_player_name", {
       id = "alternate_intro_starter_choice",
       kind = "choice",
       pic = "oak",
       saveKey = "starter",
-      text = "Before you leave,\nyou should have a\nPOKéMON of your own!\fChoose one.",
+      text = "Before you leave,\nyou should have a\nPOKéMON of your own!\\fChoose one.",
       choices = { "BULBASAUR", "CHARMANDER", "SQUIRTLE" },
       values = { "BULBASAUR", "CHARMANDER", "SQUIRTLE" },
       tx = 4,
@@ -162,6 +156,54 @@ return function(mod)
       id = "alternate_intro_receive_starter",
       kind = "fn",
       run = receiveStarter,
+    })
+
+    -- Replace the normal final "legend is about to unfold" beat with the
+    -- Pokédex handoff immediately after the rival's name is confirmed.
+    mod.ui.insertStepAfter(steps, "confirm_rival_name", {
+      id = "alternate_intro_pokedex_request",
+      kind = "say",
+      pic = "oak",
+      textKey = "_OaksLabOakIHaveARequestText",
+    })
+
+    mod.ui.insertStepAfter(steps, "alternate_intro_pokedex_request", {
+      id = "alternate_intro_pokedex",
+      kind = "say",
+      pic = "oak",
+      textKey = "_OaksLabOakMyInventionPokedexText",
+    })
+
+    mod.ui.insertStepAfter(steps, "alternate_intro_pokedex", {
+      id = "alternate_intro_pokedex_given",
+      kind = "say",
+      pic = "oak",
+      textKey = "_OaksLabOakGotPokedexText",
+    })
+
+    mod.ui.insertStepAfter(steps, "alternate_intro_pokedex_given", {
+      id = "alternate_intro_pokedex_dream",
+      kind = "say",
+      pic = "oak",
+      textKey = "_OaksLabOakThatWasMyDreamText",
+    })
+
+    mod.ui.insertStepAfter(steps, "alternate_intro_pokedex_dream", {
+      id = "alternate_intro_pokedex_rival",
+      kind = "say",
+      pic = "oak",
+      text = "{PLAYER} and {RIVAL}!\nTake these with you.\\fYour rival has been given\na Pokédex as well.",
+    })
+
+    mod.ui.insertStepAfter(steps, "alternate_intro_pokedex_rival", {
+      id = "alternate_intro_pokedex_done",
+      kind = "fn",
+      run = function(stepSpeech, done)
+        stepSpeech.game.save.flags.EVENT_GOT_POKEDEX = true
+        stepSpeech.game.save.flags.EVENT_OAK_GOT_PARCEL = true
+        stepSpeech.game.save.flags.EVENT_GOT_OAKS_PARCEL = true
+        done()
+      end,
     })
 
     return steps
