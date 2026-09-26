@@ -1,18 +1,3 @@
-# Choose Your Avatar
+# Alternate Intro
 
-Oak asks whether you are a boy or a girl during his intro, and the answer
-dresses the player everywhere the engine draws them. This fork modifies the sprite with Leaf sprites from Spriters Resource, created by OmegaZeez. It also gets rid of the options for changing mid save, and locks your choice in like later entries.
-
-Start a new game and answer Oak. The walking and cycling sheets swap the
-moment you answer; the battle back pic and the front pic on the trainer card
-and in the Hall of Fame follow the same choice.
-
-## Options
-
-| Option | Default | What it does |
-| --- | --- | --- |
-| `BACK SIZE` | `MEDIUM` | How large the player stands in battle: `SMALL` 40x40, `MEDIUM` 48x48, `LARGE` 64x64 (Red's exact footprint). Takes effect on the next battle. With the voxel renderer installed, see below. |
-| `ADV. TINT` | `BLUE` | Which pokered-gbc object palette the avatar wears under the ADVANCED colour mode: `BLUE`, `RED`, `GREEN` or `BROWN`. |
-
-All three take effect immediately -- the mod re-applies them off
-`mod.options_changed` rather than waiting for a reload.
+A companion mod for Leaf Avatar that replaces the standard early-game introduction with an alternate intro focused on choosing your starter Pokémon during Oak's introduction and setting up the beginning of the journey from there.
