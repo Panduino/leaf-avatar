@@ -139,7 +139,7 @@ return function(mod)
       kind = "choice",
       pic = "oak",
       saveKey = "starter",
-      text = "Before you leave,\nyou should have a\nPOKéMON of your own!\fChoose one.",
+      text = "Before you leave,\nyou should have a\nPOKéMON of your own!\fI have three wonderful\nPOKéMON here for you.\nWhich one would you like?",
       choices = { "BULBASAUR", "CHARMANDER", "SQUIRTLE" },
       values = { "BULBASAUR", "CHARMANDER", "SQUIRTLE" },
       tx = 4,
@@ -159,28 +159,28 @@ return function(mod)
       id = "alternate_intro_pokedex_request",
       kind = "say",
       pic = "oak",
-      textKey = "_OaksLabOakIHaveARequestText",
+      text = "I have a request for you.\nI want you to help me with\nmy research.",
     })
 
     mod.ui.insertStepAfter(steps, "alternate_intro_pokedex_request", {
       id = "alternate_intro_pokedex",
       kind = "say",
       pic = "oak",
-      textKey = "_OaksLabOakMyInventionPokedexText",
+      text = "I've given you an invention\nof mine, the POKéDEX!\fIt records data on the\nPOKéMON you encounter.",
     })
 
     mod.ui.insertStepAfter(steps, "alternate_intro_pokedex", {
       id = "alternate_intro_pokedex_given",
       kind = "say",
       pic = "oak",
-      textKey = "_OaksLabOakGotPokedexText",
+      text = "Take good care of it.\nIt will be a great help on\nyour journey.",
     })
 
     mod.ui.insertStepAfter(steps, "alternate_intro_pokedex_given", {
       id = "alternate_intro_pokedex_dream",
       kind = "say",
       pic = "oak",
-      textKey = "_OaksLabOakThatWasMyDreamText",
+      text = "My dream is to see all the\nPOKéMON in the world.\fI'm counting on you to help\nme make that dream come true!",
     })
 
     mod.ui.insertStepAfter(steps, "alternate_intro_pokedex_dream", {
