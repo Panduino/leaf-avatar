@@ -226,18 +226,10 @@ return function(mod)
       if not mod.save:get("starter") or not flags.EVENT_GOT_STARTER then
         return false
       end
-      if x ~= 5 or y ~= 5 then return false end
+      if x ~= 5 or y ~= 6 then return false end
 
-      -- onStep fires after the player lands on the trigger tile. Put the
-      -- player back on the tile below Mom before her approach so she meets
-      -- him cleanly instead of walking into the player's current tile.
-      ow.player.cellX = 5
-      ow.player.cellY = 6
-      ow.player.px = 5 * 16
-      ow.player.py = 6 * 16
-      ow.player.targetX = 5
-      ow.player.targetY = 6
-      ow.player.moving = false
+      -- Lock player input for the cutscene so Mom can approach without the
+      -- player continuing to walk through the scene.
       ow.player.inputLocked = true
 
       local rows = {
