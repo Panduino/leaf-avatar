@@ -23,14 +23,17 @@ return function(mod)
     BULBASAUR = {
       rival = "CHARMANDER",
       flag = "EVENT_CHOSE_BULBASAUR",
+      index = 1,
     },
     CHARMANDER = {
       rival = "SQUIRTLE",
       flag = "EVENT_CHOSE_CHARMANDER",
+      index = 2,
     },
     SQUIRTLE = {
       rival = "BULBASAUR",
       flag = "EVENT_CHOSE_SQUIRTLE",
+      index = 3,
     },
   }
 
@@ -45,9 +48,18 @@ return function(mod)
     flags.EVENT_CHOSE_SQUIRTLE = nil
     flags[info.flag] = true
 
-    -- These are the milestones the normal Oak's Lab/Pokédex sequence would
-    -- establish before the player is allowed to leave the early game.
+    -- These milestones normally happen during the Parcel -> Lab sequence.
+    -- Marking both parcel flags complete prevents the vanilla story gate from
+    -- sending the player back to Viridian for a delivery we have skipped.
     flags.EVENT_GOT_POKEDEX = true
+    flags.EVENT_OAK_GOT_PARCEL = true
+    flags.EVENT_GOT_OAKS_PARCEL = true
+
+    -- The original Gen 1 save stores the starter pair as 1/2/3 as well.
+    -- The live Red/Blue party scripts use the chose-* flags, but keeping these
+    -- fields synchronized helps save/interop code that reads the starter byte.
+    game.save.playerStarter = info.index
+    game.save.rivalStarter = STARTERS[info.rival].index
   end
 
   local function speciesName(game, species)
@@ -58,8 +70,9 @@ return function(mod)
   local function receiveStarter(speech, done)
     local game = speech.game
     local species = mod.save:get("starter")
+    local info = STARTERS[species]
 
-    if not STARTERS[species] then
+    if not info then
       done()
       return
     end
@@ -76,21 +89,24 @@ return function(mod)
     Commands.give_pokemon(ctx, species, 5, true)
     setStarterFlags(game, species)
 
-    local img, flip, trueColor = require("src.ui.OakSpeech").resolvePic(
+    -- This is the normal front/battle/Pokédex sprite resolver. It is
+    -- deliberately not an asset shipped by this mod, so imported sprites and
+    -- compatible sprite-replacement mods remain authoritative.
+    local OakSpeech = require("src.ui.OakSpeech")
+    local img, flip, trueColor = OakSpeech.resolvePic(
       game, { type = "pokemon", id = species }, speech
     )
     speech.pic = img
     speech.picFlip = flip or false
     speech.picTrueColor = trueColor or false
 
-    local Sound = require("src.core.Sound")
-    Sound.playCry(game.data, species)
+    require("src.core.Sound").playCry(game.data, species)
 
     local TextBox = require("src.render.TextBox")
     local NamingScreen = require("src.ui.NamingScreen")
     local mon = game.save.party and game.save.party[1]
 
-    -- This uses the same received-mon text as the normal Oak's Lab gift.
+    -- Use the same received-mon text as the normal Oak's Lab starter gift.
     game.stack:push(TextBox.new(
       game,
       game.data.text and game.data.text._OaksLabReceivedMonText
@@ -126,9 +142,9 @@ return function(mod)
   mod.hooks:wrap("intro.oak_speech.build", function(next, steps, speech)
     steps = next(steps, speech)
 
-    -- The player already has a name by this point. Keeping the normal
-    -- world explanation and player-name sequence makes this feel like the
-    -- same intro, just with the Oak's Lab detour removed.
+    -- The player already has a name by this point. Keeping the normal world
+    -- explanation and player-name sequence makes this feel like the same
+    -- intro, just with the Oak's Lab detour removed.
     mod.ui.insertStepAfter(steps, "confirm_player_name", {
       id = "alternate_intro_starter_choice",
       kind = "choice",
@@ -148,9 +164,6 @@ return function(mod)
       run = receiveStarter,
     })
 
-    -- Remove the demo transition only if the starter has already been
-    -- selected in a resumed/custom intro. The normal first-time path keeps
-    -- Oak's NIDORINO demonstration and world explanation intact.
     return steps
   end)
 
@@ -162,67 +175,78 @@ return function(mod)
 
     mod.save:set("starter", species)
 
-    -- The next step will use this preview through OakSpeech's normal
-    -- Pokemon.Sprites resolver. This means sprite replacements from the game
-    -- data or other compatible mods are automatically respected.
+    -- Keep the step's descriptor tied to the selected species. The actual
+    -- image is still resolved by OakSpeech at draw time from game data.
     for _, step in ipairs(ev.speech.steps or {}) do
-      if step.id == "alternate_intro_starter_choice" then
-        step.pic = "oak"
-      elseif step.id == "alternate_intro_receive_starter" then
+      if step.id == "alternate_intro_receive_starter" then
         step.pic = { type = "pokemon", id = species }
       end
     end
   end)
 
-  -- The vanilla intro already asks for the rival's name. Put Oak's usual
-  -- Pokédex explanation immediately after that name is confirmed, which
-  -- replaces the later Parcel -> Lab -> Pokédex sequence.
+  -- Put Oak's usual Pokédex explanation immediately after the rival's name is
+  -- confirmed. This is the point at which the alternate intro replaces the
+  -- later Parcel -> Lab -> Pokédex sequence.
   mod.hooks:wrap("intro.oak_speech.build", function(next, steps, speech)
     steps = next(steps, speech)
 
-    -- This wrapper is intentionally a no-op when another wrapper has already
-    -- inserted the Pokedex block. It exists separately so its ordering remains
-    -- predictable when companion mods also reshape Oak's speech.
-    local already = false
     for _, step in ipairs(steps) do
       if step.id == "alternate_intro_pokedex" then
-        already = true
-        break
+        return steps
       end
     end
-    if already then return steps end
 
-    local insertAt = nil
+    local insertAt
     for i, step in ipairs(steps) do
       if step.id == "confirm_rival_name" then
         insertAt = i + 1
         break
       end
     end
-
     if not insertAt then return steps end
 
     table.insert(steps, insertAt, {
+      id = "alternate_intro_pokedex_request",
+      kind = "say",
+      pic = "oak",
+      textKey = "_OaksLabOakIHaveARequestText",
+    })
+
+    table.insert(steps, insertAt + 1, {
       id = "alternate_intro_pokedex",
       kind = "say",
       pic = "oak",
       textKey = "_OaksLabOakMyInventionPokedexText",
-      fadeOut = true,
     })
 
-    table.insert(steps, insertAt + 1, {
-      id = "alternate_intro_pokedex_to_player",
+    table.insert(steps, insertAt + 2, {
+      id = "alternate_intro_pokedex_given",
+      kind = "say",
+      pic = "oak",
+      textKey = "_OaksLabOakGotPokedexText",
+    })
+
+    table.insert(steps, insertAt + 3, {
+      id = "alternate_intro_pokedex_dream",
+      kind = "say",
+      pic = "oak",
+      textKey = "_OaksLabOakThatWasMyDreamText",
+    })
+
+    table.insert(steps, insertAt + 4, {
+      id = "alternate_intro_pokedex_rival",
       kind = "say",
       pic = "oak",
       text = "{PLAYER} and {RIVAL}!\nTake these with you.\fYour rival has been given\na Pokédex as well.",
     })
 
-    table.insert(steps, insertAt + 2, {
+    table.insert(steps, insertAt + 5, {
       id = "alternate_intro_pokedex_done",
       kind = "fn",
       run = function(stepSpeech, done)
         stepSpeech.game.save.flags.EVENT_GOT_POKEDEX = true
-        stepSpeech.game.save.flags.EVENT_GOT_STARTER = true
+        stepSpeech.game.save.flags.EVENT_OAK_GOT_PARCEL = true
+        stepSpeech.game.save.flags.EVENT_GOT_OAKS_PARCEL = true
         done()
       end,
     })
