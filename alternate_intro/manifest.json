@@ -1,0 +1,18 @@
+{
+  "id": "alternate_intro",
+  "name": "Alternate Oak Intro",
+  "version": "1.0.0",
+  "api": 2,
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "GAMEPLAY",
+  "game_version": ">=0.0.0-0 <2.0.0",
+  "priority": 80,
+  "dependencies": [],
+  "optional_dependencies": [
+    "leaf_avatar"
+  ],
+  "conflicts": [],
+  "affects_link": false,
+  "description": "Replaces the early-game Oak sequence with a direct starter choice during the intro, nickname choice, rival counter-pick, and Pokédex handoff."
+}
