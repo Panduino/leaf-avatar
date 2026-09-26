@@ -184,6 +184,39 @@ return function(mod)
     end
   end)
 
+  -- The alternate intro supplies the Poké Balls at home instead of Oak's Lab.
+  -- Vanilla Red/Blue puts Mom at (5,4) on REDS_HOUSE_1F. When the player walks
+  -- down to (5,6), Mom walks down one tile, speaks, gives ten POKE BALLs, and
+  -- walks back to her seat. The scene is one-shot and only runs after the
+  -- alternate intro has actually given the starter.
+  mod.content.map_scripts:register("REDS_HOUSE_1F", {
+    onStep = function(game, ow, x, y)
+      local flags = game.save.flags or {}
+      if flags.MOD_ALTERNATE_INTRO_MOM_GIFT then return false end
+      if not mod.save:get("starter") or not flags.EVENT_GOT_STARTER then
+        return false
+      end
+      if x ~= 5 or y ~= 6 then return false end
+
+      local rows = {
+        { "move_npc", 1, "down", 1 },
+        { "face_player" },
+        { "show_text",
+          "Right. All kids leave home\nsomeday. It said so on TV." },
+        { "show_text",
+          "I've packed some fresh\nunderwear for you, too.\fYou'll need to be prepared\nfor your journey!" },
+        { "give_item", "POKE_BALL", 10, false },
+        { "show_text",
+          "{PLAYER} got 10 POKé BALLs!\fUse them to catch\nWILD POKéMON!" },
+        { "move_npc", 1, "up", 1 },
+        { "set_flag", "MOD_ALTERNATE_INTRO_MOM_GIFT" },
+      }
+
+      ow.runner:run(rows, { npc = mod.world:npc("REDS_HOUSE_1F", 1) })
+      return true
+    end,
+  })
+
   -- Put Oak's usual Pokédex explanation immediately after the rival's name is
   -- confirmed. This is the point at which the alternate intro replaces the
   -- later Parcel -> Lab -> Pokédex sequence.
