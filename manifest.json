@@ -3,7 +3,7 @@
   "name": "Alternate Oak Intro",
   "version": "1.0.0",
   "api": 2,
-  "entry": "alternate_intro/main.lua",
+  "entry": "main.lua",
   "profile": "content",
   "category": "GAMEPLAY",
   "game_version": ">=0.0.0-0 <2.0.0",
