@@ -166,31 +166,24 @@ return function(mod)
       id = "alternate_intro_pokedex",
       kind = "say",
       pic = "oak",
-      text = "I've given you an invention\nof mine, the POKéDEX!\fIt records data on the\nPOKéMON you encounter.",
+      text = "I've given you an invention\nof mine, the POKéDEX!\fIt automatically records data\non POKéMON you've seen or\ncaught! It's a hi-tech\nencyclopedia!",
     })
 
     mod.ui.insertStepAfter(steps, "alternate_intro_pokedex", {
       id = "alternate_intro_pokedex_given",
       kind = "say",
       pic = "oak",
-      text = "Take good care of it.\nIt will be a great help on\nyour journey.",
+      text = "Take this with you, {PLAYER}!\nIt will help you on your\njourney.",
     })
 
     mod.ui.insertStepAfter(steps, "alternate_intro_pokedex_given", {
       id = "alternate_intro_pokedex_dream",
       kind = "say",
       pic = "oak",
-      text = "My dream is to see all the\nPOKéMON in the world.\fI'm counting on you to help\nme make that dream come true!",
+      text = "To make a complete guide on\nall the POKéMON in the world...\fThat was my dream! But, I'm too\nold! I can't do it! So, I want\nyou to fulfill my dream for me!\fGet moving! This is a great\nundertaking in POKéMON history!",
     })
 
     mod.ui.insertStepAfter(steps, "alternate_intro_pokedex_dream", {
-      id = "alternate_intro_pokedex_rival",
-      kind = "say",
-      pic = "oak",
-      text = "{PLAYER} and {RIVAL}!\nTake these with you.\fYour rival has been given\na Pokédex as well.",
-    })
-
-    mod.ui.insertStepAfter(steps, "alternate_intro_pokedex_rival", {
       id = "alternate_intro_pokedex_done",
       kind = "fn",
       run = function(stepSpeech, done)
