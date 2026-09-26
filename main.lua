@@ -215,10 +215,11 @@ return function(mod)
   end)
 
   -- The alternate intro supplies the Poké Balls at home instead of Oak's Lab.
-  -- Vanilla Red/Blue puts Mom at (5,4) on REDS_HOUSE_1F. When the player walks
-  -- down to (5,6), Mom walks down one tile, speaks, gives ten POKE BALLs, and
-  -- walks back to her seat. The scene is one-shot and only runs after the
-  -- alternate intro has actually given the starter.
+  -- Vanilla Red/Blue puts Mom at (5,4) on REDS_HOUSE_1F. The scene fires
+  -- when the player reaches the approach tile at (5,6), which is the last
+  -- player tile before the front-door tile at (5,5), so it cannot depend on
+  -- the player actually triggering the house warp. The runner itself owns
+  -- input gating while the scene is active.
   mod.content.map_scripts:register("REDS_HOUSE_1F", {
     onStep = function(game, ow, x, y)
       local flags = game.save.flags or {}
@@ -227,10 +228,6 @@ return function(mod)
         return false
       end
       if x ~= 5 or y ~= 6 then return false end
-
-      -- Lock player input for the cutscene so Mom can approach without the
-      -- player continuing to walk through the scene.
-      ow.player.inputLocked = true
 
       local rows = {
         { "move_npc", 1, "down", 1 },
@@ -248,9 +245,6 @@ return function(mod)
 
       ow.runner:run(rows, {
         npc = mod.world:npc("REDS_HOUSE_1F", 1),
-        onDone = function()
-          ow.player.inputLocked = false
-        end,
       })
       return true
     end,
