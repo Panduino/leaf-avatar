@@ -8,11 +8,6 @@
 -- sprite override path used by compatible mods.
 
 return function(mod)
-  if mod.generation ~= 1 then
-    mod.log:warn("Alternate Oak Intro is intended for the Gen 1 three-starter flow")
-    return
-  end
-
   local STARTERS = {
     BULBASAUR = {
       rival = "CHARMANDER",
@@ -144,7 +139,7 @@ return function(mod)
       kind = "choice",
       pic = "oak",
       saveKey = "starter",
-      text = "Before you leave,\nyou should have a\nPOKéMON of your own!\\fChoose one.",
+      text = "Before you leave,\nyou should have a\nPOKéMON of your own!\fChoose one.",
       choices = { "BULBASAUR", "CHARMANDER", "SQUIRTLE" },
       values = { "BULBASAUR", "CHARMANDER", "SQUIRTLE" },
       tx = 4,
@@ -192,7 +187,7 @@ return function(mod)
       id = "alternate_intro_pokedex_rival",
       kind = "say",
       pic = "oak",
-      text = "{PLAYER} and {RIVAL}!\nTake these with you.\\fYour rival has been given\na Pokédex as well.",
+      text = "{PLAYER} and {RIVAL}!\nTake these with you.\fYour rival has been given\na Pokédex as well.",
     })
 
     mod.ui.insertStepAfter(steps, "alternate_intro_pokedex_rival", {
