@@ -243,8 +243,11 @@ return function(mod)
         { "set_flag", "MOD_ALTERNATE_INTRO_MOM_GIFT" },
       }
 
+      local mom = ow:npcByIndex(1)
+      if not mom then return false end
+
       ow.runner:run(rows, {
-        npc = mod.world:npc("REDS_HOUSE_1F", 1),
+        npc = mom,
       })
       return true
     end,
