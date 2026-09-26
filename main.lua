@@ -1,267 +1,289 @@
--- Choose Your Avatar.  Oak asks whether you are a boy or a girl, and the
--- answer dresses the player everywhere the engine draws them: the walking
--- and cycling sheets, the battle back pic, and the front pic the intro,
--- the trainer card and the Hall of Fame share.
+-- Alternate Oak intro:
+-- choose Bulbasaur, Charmander or Squirtle during Oak's opening speech,
+-- immediately receive it (with the normal gift/Pokédex bookkeeping),
+-- choose a nickname, name the rival, then receive the Pokédex explanation.
 --
--- The art ships in the four DMG shades rather than in baked colour, which
--- is what lets every COLORS mode light it: the SGB zone shader, ADVANCED's
--- per-sprite OBJ palette, OG RED's boot-ROM object palette and the mono
--- novelties all colour a shaded sheet and would fight a pre-coloured one.
-
-local WALK  = "assets/leaf_walk.png"
-local BIKE  = "assets/leaf_bike.png"
-local FRONT = "assets/leaf_front.png"
-local BACK  = "assets/leaf_back.png"
-local FISH  = {
-  redFishFront = "assets/leaf_fish_front.png",
-  redFishBack  = "assets/leaf_fish_back.png",
-  redFishSide  = "assets/leaf_fish_side.png",
-}
-
--- ADVANCED (the `redpp` COLORS mode) resolves an overworld sprite's OBJ
--- palette through PaletteFX.spriteObp, which reads the sprite's
--- `paletteSource`, pulls the bracketed index out of it and looks that index
--- up in the pokered-gbc pack's spriteAssignment table.  That lands on one of
--- eight SPR_PAL_* groups.  These four indices are the ones whose assignment
--- is a fixed group rather than the "random" sentinel, named here by the
--- colour the group actually carries.
---
--- The pack has no purple group, so the lilac and violet reference palettes
--- cannot be reproduced literally under ADVANCED; BLUE is the nearest, and is
--- the default so the avatar reads as distinct from SPRITE_RED's red.
-local TINT = {
-  BLUE  = "ROM:SpriteSheetPointerTable[1]",   -- group 1  { 82,  74, 255 }
-  RED   = "ROM:SpriteSheetPointerTable[0]",   -- group 0  { 255, 58,   8 }
-  GREEN = "ROM:SpriteSheetPointerTable[21]",  -- group 2  { 58, 189,  25 }
-  BROWN = "ROM:SpriteSheetPointerTable[2]",   -- group 3  { 123, 82,  25 }
-}
-
--- The back pic is 32x32 like RedPicBack, so the vanilla 2x default would
--- draw it at Red's exact 64x64 footprint.  backPlacement pins the bottom row
--- at y=96 and grows the pic upward, so the scale is the whole story for how
--- far into the field the player reaches.  LARGE is that vanilla footprint;
--- the default sits below it because the pose is a fuller figure than Red's
--- shoulders and reads bigger at the same height.
-local BACK_SCALE = { SMALL = 1.25, MEDIUM = 1.5, LARGE = 2.0 }
-
-local GIRL_PRESETS = { "LEAF", "GREEN", "DAISY" }
+-- No starter artwork is bundled here. The preview uses OakSpeech's normal
+-- Pokémon sprite resolver, which follows the imported game data and the same
+-- sprite override path used by compatible mods.
 
 return function(mod)
-  mod.options:define({
-    { key = "backsize", label = "BACK SIZE", type = "choice", default = "MEDIUM",
-      choices = { { "SMALL", "SMALL" }, { "MEDIUM", "MEDIUM" },
-                  { "LARGE", "LARGE" } } },
-    { key = "tint", label = "ADV. TINT", type = "choice", default = "BLUE",
-      choices = { { "BLUE", "BLUE" }, { "RED", "RED" },
-                  { "GREEN", "GREEN" }, { "BROWN", "BROWN" } } },
-  })
-
-  -- forward declarations: the intro handler below calls apply(), which is
-  -- defined further down once the merged sprite records are in reach
-  local game, vanilla, apply
-
-  local function asset(relative) return mod.assets:path(relative) end
-  local function tint() return TINT[mod.options:get("tint")] or TINT.BLUE end
-  -- The Dramatic Shape voxel renderer replaces BattleState.resolveBattleScale
-  -- with one that rounds the answer to a whole number, because its battle
-  -- camera is solved so a pic at its own integer scale exactly fills one
-  -- overworld square -- a fractional ask would be resampled twice on the way
-  -- to the screen and a twice-resampled Gen 1 pic is mush.  It rounds rather
-  -- than refuses, so MEDIUM's 1.5 was landing on 2 and the player stood at
-  -- Red's full 64x64 in a staged battle: bigger than the option said, and not
-  -- a size anybody chose.
-  --
-  -- So when it is installed the sizing is its call, and this only ever hands
-  -- it whole numbers -- floored, never rounded, since rounding up is the bug.
-  -- What the option asks for is then exactly what gets drawn.
-  local function voxelInstalled()
-    local ok, handle = pcall(mod.find, "DRAMATIC_SHAPE")
-    return ok and handle ~= nil
+  if mod.generation ~= 1 then
+    mod.log:warn("Alternate Oak Intro is intended for the Gen 1 three-starter flow")
+    return
   end
 
-  local function backScale()
-    local s = BACK_SCALE[mod.options:get("backsize")] or BACK_SCALE.MEDIUM
-    if voxelInstalled() then return math.max(1, math.floor(s)) end
-    return s
+  local GameVersion = require("src.core.GameVersion")
+  if GameVersion.isYellow() then
+    mod.log:warn("Alternate Oak Intro is disabled for Pokémon Yellow")
+    return
   end
 
-  -- ------- content
+  local STARTERS = {
+    BULBASAUR = {
+      rival = "CHARMANDER",
+      flag = "EVENT_CHOSE_BULBASAUR",
+      index = 1,
+    },
+    CHARMANDER = {
+      rival = "SQUIRTLE",
+      flag = "EVENT_CHOSE_CHARMANDER",
+      index = 2,
+    },
+    SQUIRTLE = {
+      rival = "BULBASAUR",
+      flag = "EVENT_CHOSE_SQUIRTLE",
+      index = 3,
+    },
+  }
 
-  -- Registered under ids of their own so the sheets are addressable by other
-  -- mods and by field.playerSprites, even though the live swap below works
-  -- by repointing SPRITE_RED's image rather than by changing the id.
-  mod.content.sprites:register("SPRITE_LEAF", {
-    image = asset(WALK), frames = 6, walker = true, paletteSource = tint(),
-  })
-  mod.content.sprites:register("SPRITE_LEAF_BIKE", {
-    image = asset(BIKE), frames = 6, walker = true, paletteSource = tint(),
-  })
+  local function setStarterFlags(game, species)
+    local info = STARTERS[species]
+    if not info then return end
 
-  -- An image-level entry is the only way to scale a pic that is not
-  -- species-keyed, which the trainer back is.  apply() refreshes the scale
-  -- from the option afterwards, so BACK SIZE takes effect without a reload.
-  mod.content.battle_sprite_scales:register("leaf_back", {
-    path = asset(BACK), scale = backScale(),
-  })
+    local flags = game.save.flags
+    flags.EVENT_GOT_STARTER = true
+    flags.EVENT_CHOSE_BULBASAUR = nil
+    flags.EVENT_CHOSE_CHARMANDER = nil
+    flags.EVENT_CHOSE_SQUIRTLE = nil
+    flags[info.flag] = true
 
-  -- ------- which avatar is live
+    -- These milestones normally happen during the Parcel -> Lab sequence.
+    -- Marking both parcel flags complete prevents the vanilla story gate from
+    -- sending the player back to Viridian for a delivery we have skipped.
+    flags.EVENT_GOT_POKEDEX = true
+    flags.EVENT_OAK_GOT_PARCEL = true
+    flags.EVENT_GOT_OAKS_PARCEL = true
 
-  -- The avatar is chosen once by the intro and then read from the save.
-  -- There is deliberately no mod-menu override: changing character later
-  -- is not supported by this mod.
-  local function chosen()
-    return mod.save:get("avatar", "boy")
+    -- The original Gen 1 save stores the starter pair as 1/2/3 as well.
+    -- The live Red/Blue party scripts use the chose-* flags, but keeping these
+    -- fields synchronized helps save/interop code that reads the starter byte.
+    game.save.playerStarter = info.index
+    game.save.rivalStarter = STARTERS[info.rival].index
   end
-  local function isGirl() return chosen() == "girl" end
 
-  -- ------- dressing the intro
+  local function speciesName(game, species)
+    local def = game.data.pokemon and game.data.pokemon[species]
+    return (def and def.name) or species
+  end
 
-  -- OakSpeech resolves playerPic and walkSheet in its constructor, which runs
-  -- before buildSteps and long before the player could answer, and
-  -- resolvePic returns that cached image ahead of anything the player.sprite
-  -- hook would say.  Repointing the cache is what makes "here is you" show
-  -- the right trainer -- including the shrink animation, which tweens the pic
-  -- into the walking sheet's first frame and would otherwise land on Red.
-  local function dressSpeech(speech)
-    if not speech then return end
-    for _, step in ipairs(speech.steps or {}) do
-      if step.id == "name_player" then
-        step.presetsFallback = GIRL_PRESETS
-        step.presetsWho = nil
-      end
+  local function receiveStarter(speech, done)
+    local game = speech.game
+    local species = mod.save:get("starter")
+    local info = STARTERS[species]
+
+    if not info then
+      done()
+      return
     end
-    local ok, front = pcall(function() return mod.assets:image(FRONT) end)
-    if ok and front then
-      local stale = speech.playerPic
-      speech.playerPic = front
-      speech.playerTrueColor = false
-      -- if that pic is on screen this instant, swap what is drawn too
-      if speech.pic == stale then
-        speech.pic = front
-        speech.picTrueColor = false
-      end
-    else
-      mod.log:warn("could not load the front pic for the intro; "
-        .. "keeping the vanilla trainer picture")
-    end
-    local okWalk, walk = pcall(function() return mod.assets:image(WALK) end)
-    if okWalk and walk then speech.walkSheet = walk end
-  end
 
-  -- ------- the intro question
+    -- Use the engine's ordinary gift path. This stamps the OT, adds the
+    -- Pokémon to the party, marks it seen/owned in the Pokédex, and emits
+    -- pokemon.before_give so other mods can participate in the gift.
+    local Commands = require("src.script.Commands")
+    local ctx = {
+      game = game,
+      save = game.save,
+      overworld = game.overworld,
+    }
+    Commands.give_pokemon(ctx, species, 5, true)
+    setStarterFlags(game, species)
+
+    -- This is the normal front/battle/Pokédex sprite resolver. It is
+    -- deliberately not an asset shipped by this mod, so imported sprites and
+    -- compatible sprite-replacement mods remain authoritative.
+    local OakSpeech = require("src.ui.OakSpeech")
+    local img, flip, trueColor = OakSpeech.resolvePic(
+      game, { type = "pokemon", id = species }, speech
+    )
+    speech.pic = img
+    speech.picFlip = flip or false
+    speech.picTrueColor = trueColor or false
+
+    require("src.core.Sound").playCry(game.data, species)
+
+    local TextBox = require("src.render.TextBox")
+    local NamingScreen = require("src.ui.NamingScreen")
+    local mon = game.save.party and game.save.party[1]
+
+    -- Use the same received-mon text as the normal Oak's Lab starter gift.
+    game.stack:push(TextBox.new(
+      game,
+      game.data.text and game.data.text._OaksLabReceivedMonText
+        or ("You received " .. speciesName(game, species) .. "!"),
+      function()
+        local prompt = ("Would you like to give\nyour %s a nickname?")
+          :format(speciesName(game, species))
+
+        game.stack:push(TextBox.new(game, prompt, nil, {
+          choice = function(yes)
+            if not yes then
+              done()
+              return
+            end
+
+            game.stack:push(NamingScreen.new(game, {
+              title = require("src.core.Strings")("NICKNAME?"),
+              maxLen = 10,
+              mon = mon,
+              onDone = function(name)
+                if name and #name > 0 and mon then
+                  mon.nickname = name
+                end
+                done()
+              end,
+            }))
+          end,
+        }))
+      end
+    ))
+  end
 
   mod.hooks:wrap("intro.oak_speech.build", function(next, steps, speech)
     steps = next(steps, speech)
-    mod.ui.insertStepBefore(steps, "ask_player_name", {
-      id = "leaf_avatar_pick",
+
+    -- The player already has a name by this point. Keeping the normal world
+    -- explanation and player-name sequence makes this feel like the same
+    -- intro, just with the Oak's Lab detour removed.
+    mod.ui.insertStepAfter(steps, "confirm_player_name", {
+      id = "alternate_intro_starter_choice",
       kind = "choice",
-      text = "Now tell me...\nAre you a boy?\nOr are you a girl?",
-      saveKey = "avatar",
-      choices = { "BOY", "GIRL" },
-      values = { "boy", "girl" },
-      tx = 6, ty = 4, tw = 7,
+      pic = "oak",
+      saveKey = "starter",
+      text = "Before you leave,\nyou should have a\nPOKéMON of your own!\fChoose one.",
+      choices = { "BULBASAUR", "CHARMANDER", "SQUIRTLE" },
+      values = { "BULBASAUR", "CHARMANDER", "SQUIRTLE" },
+      tx = 4,
+      ty = 4,
+      tw = 12,
     })
+
+    mod.ui.insertStepAfter(steps, "alternate_intro_starter_choice", {
+      id = "alternate_intro_receive_starter",
+      kind = "fn",
+      run = receiveStarter,
+    })
+
     return steps
   end)
 
-  -- Record the answer, then re-point the name presets in the same pass the
-  -- next step reads them from.
   mod.events:on("intro.oak_speech.answered", function(ev)
-    if ev.saveKey ~= "avatar" then return end
-    mod.save:set("avatar", ev.value)
-    if ev.value == "girl" then dressSpeech(ev.speech) end
-    apply()
-  end)
+    if ev.saveKey ~= "starter" then return end
 
-  -- ------- the pics
-  -- player.sprite follows the avatar selected during the intro for the rest
-  -- of the save. The catch tutorial's old man still fights in the player's
-  -- place, so `demo` is left alone.
+    local species = ev.value
+    if not STARTERS[species] then return end
 
-  mod.hooks:wrap("player.sprite", function(next, path, ctx)
-    path = next(path, ctx)
-    if not isGirl() or ctx.demo then return path end
-    if ctx.side == "back" then return asset(BACK) end
-    return asset(FRONT)
-  end)
+    mod.save:set("starter", species)
 
-  -- ------- the overworld sheets
-  -- SpriteRenderer re-reads def.image every frame on the shaded path, so
-  -- repointing the merged SPRITE_RED record swaps the walker live without
-  -- rebuilding the Player -- which matters because the overworld state is
-  -- pushed before both the intro and save.loaded, so its Player already
-  -- exists by the time either one could tell us the answer.
-
-  local function remember(def)
-    if def and vanilla[def] == nil then
-      vanilla[def] = { image = def.image, paletteSource = def.paletteSource }
-    end
-  end
-
-  apply = function()
-    if not game or not game.data or not game.data.sprites then return end
-    vanilla = vanilla or {}
-    -- BattleState.imageBattleScale reads this table at draw time and matches
-    -- on the path, so refreshing the record here is enough for the option to
-    -- land on the next battle without a reload
-    local scales = game.data.battle_sprite_scales
-    local record = scales and scales.leaf_back
-    if record then record.scale = backScale() end
-    local sprites = game.data.sprites
-    local pairsOf = {
-      { def = sprites.SPRITE_RED,      image = asset(WALK) },
-      { def = sprites.SPRITE_RED_BIKE, image = asset(BIKE) },
-    }
-    for _, row in ipairs(pairsOf) do
-      local def = row.def
-      if not def then
-        mod.log:warn("SPRITE_RED / SPRITE_RED_BIKE missing from the merged "
-          .. "view -- import your ROM first; overworld swap skipped")
-      else
-        remember(def)
-        if isGirl() then
-          def.image = row.image
-          def.paletteSource = tint()
-        else
-          def.image = vanilla[def].image
-          def.paletteSource = vanilla[def].paletteSource
-        end
+    -- Keep the step's descriptor tied to the selected species. The actual
+    -- image is still resolved by OakSpeech at draw time from game data.
+    for _, step in ipairs(ev.speech.steps or {}) do
+      if step.id == "alternate_intro_receive_starter" then
+        step.pic = { type = "pokemon", id = species }
       end
     end
-  end
+  end)
 
-  mod.events:on("game.ready", function(ev)
-    game = ev.game
-    vanilla = vanilla or {}
-    -- The fishing poses are the one piece the live swap cannot reach: the
-    -- Player caches their paths when it is constructed, and reaching into
-    -- OverworldState to refresh them is unsupported.  Patching the field
-    -- data here keeps the saved avatar's fishing poses correct.
-    local fx = game.data and game.data.field and game.data.field.overworldFx
-    if fx and isGirl() then
-      for key, relative in pairs(FISH) do
-        if fx[key] then fx[key].path = asset(relative) end
+  -- The alternate intro supplies the Poké Balls at home instead of Oak's Lab.
+  -- Vanilla Red/Blue puts Mom at (5,4) on REDS_HOUSE_1F. When the player walks
+  -- down to (5,6), Mom walks down one tile, speaks, gives ten POKE BALLs, and
+  -- walks back to her seat. The scene is one-shot and only runs after the
+  -- alternate intro has actually given the starter.
+  mod.content.map_scripts:register("REDS_HOUSE_1F", {
+    onStep = function(game, ow, x, y)
+      local flags = game.save.flags or {}
+      if flags.MOD_ALTERNATE_INTRO_MOM_GIFT then return false end
+      if not mod.save:get("starter") or not flags.EVENT_GOT_STARTER then
+        return false
+      end
+      if x ~= 5 or y ~= 6 then return false end
+
+      local rows = {
+        { "move_npc", 1, "down", 1 },
+        { "face_player" },
+        { "show_text",
+          "Right. All kids leave home\nsomeday. It said so on TV." },
+        { "show_text",
+          "I've packed some fresh\nunderwear for you, too.\fYou'll need to be prepared\nfor your journey!" },
+        { "give_item", "POKE_BALL", 10, false },
+        { "show_text",
+          "{PLAYER} got 10 POKé BALLs!\fUse them to catch\nWILD POKéMON!" },
+        { "move_npc", 1, "up", 1 },
+        { "set_flag", "MOD_ALTERNATE_INTRO_MOM_GIFT" },
+      }
+
+      ow.runner:run(rows, { npc = mod.world:npc("REDS_HOUSE_1F", 1) })
+      return true
+    end,
+  })
+
+  -- Put Oak's usual Pokédex explanation immediately after the rival's name is
+  -- confirmed. This is the point at which the alternate intro replaces the
+  -- later Parcel -> Lab -> Pokédex sequence.
+  mod.hooks:wrap("intro.oak_speech.build", function(next, steps, speech)
+    steps = next(steps, speech)
+
+    for _, step in ipairs(steps) do
+      if step.id == "alternate_intro_pokedex" then
+        return steps
       end
     end
-    apply()
+
+    local insertAt
+    for i, step in ipairs(steps) do
+      if step.id == "confirm_rival_name" then
+        insertAt = i + 1
+        break
+      end
+    end
+    if not insertAt then return steps end
+
+    table.insert(steps, insertAt, {
+      id = "alternate_intro_pokedex_request",
+      kind = "say",
+      pic = "oak",
+      textKey = "_OaksLabOakIHaveARequestText",
+    })
+
+    table.insert(steps, insertAt + 1, {
+      id = "alternate_intro_pokedex",
+      kind = "say",
+      pic = "oak",
+      textKey = "_OaksLabOakMyInventionPokedexText",
+    })
+
+    table.insert(steps, insertAt + 2, {
+      id = "alternate_intro_pokedex_given",
+      kind = "say",
+      pic = "oak",
+      textKey = "_OaksLabOakGotPokedexText",
+    })
+
+    table.insert(steps, insertAt + 3, {
+      id = "alternate_intro_pokedex_dream",
+      kind = "say",
+      pic = "oak",
+      textKey = "_OaksLabOakThatWasMyDreamText",
+    })
+
+    table.insert(steps, insertAt + 4, {
+      id = "alternate_intro_pokedex_rival",
+      kind = "say",
+      pic = "oak",
+      text = "{PLAYER} and {RIVAL}!\nTake these with you.\fYour rival has been given\na Pokédex as well.",
+    })
+
+    table.insert(steps, insertAt + 5, {
+      id = "alternate_intro_pokedex_done",
+      kind = "fn",
+      run = function(stepSpeech, done)
+        stepSpeech.game.save.flags.EVENT_GOT_POKEDEX = true
+        stepSpeech.game.save.flags.EVENT_OAK_GOT_PARCEL = true
+        stepSpeech.game.save.flags.EVENT_GOT_OAKS_PARCEL = true
+        done()
+      end,
+    })
+
+    return steps
   end)
-
-  mod.events:on("save.loaded", function() apply() end)
-  mod.events:on("save.created", function() apply() end)
-
-  -- The options manager writes its remaining visual settings and emits this;
-  -- nothing else re-runs apply(), so without it ADV. TINT and BACK SIZE only took effect on the
-  -- next load.  SpriteRenderer:resolveImage re-reads paletteSource off the
-  -- def every frame and getObpImage caches per (path, group), so a new tint
-  -- rebuilds the recoloured sheet on the spot -- including under a render
-  -- pipeline that textures from resolveImage.
-  mod.events:on("mod.options_changed", function(ev)
-    if not (ev and ev.mod == mod.id) then return end
-    apply()
-  end)
-
-  -- ------- inter-mod surface
-
-  mod.exports.avatar = function() return chosen() end
-  mod.exports.isGirl = isGirl
 end
