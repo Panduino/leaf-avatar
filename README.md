@@ -1,18 +1,29 @@
 # Choose Your Avatar
 
-Oak asks whether you are a boy or a girl during his intro, and the answer
-dresses the player everywhere the engine draws them. This fork modifies the sprite with Leaf sprites from Spriters Resource, created by OmegaZeez. It also gets rid of the options for changing mid save, and locks your choice in like later entries.
+Play through Generation I as the trainer you choose at the beginning of the game.
 
-Start a new game and answer Oak. The walking and cycling sheets swap the
-moment you answer; the battle back pic and the front pic on the trainer card
-and in the Hall of Fame follow the same choice.
+**Choose Your Avatar** adds a boy/girl choice to Professor Oak's introduction. Your selection is carried throughout the adventure, including overworld movement, cycling, fishing, battles, the Trainer Card, and the Hall of Fame. The choice is made once at the start of a new game, matching the way later Pokémon games handle player characters.
+
+The female avatar uses Leaf-inspired artwork based on sprites by OmegaZeez from The Spriters Resource.
+
+## Features
+
+- Choose your avatar during Oak's introduction
+- Full walking, cycling, and fishing graphics
+- Matching battle back sprite, Trainer Card portrait, and Hall of Fame appearance
+- Works across G1R Deluxe color modes
+- Optional compatibility with Alternate Oak Intro and Kanto Gear
+
+## Screenshots
+
+| Oak's Introduction | Overworld | Battle |
+| :---: | :---: | :---: |
+| _Screenshot coming soon_ | _Screenshot coming soon_ | _Screenshot coming soon_ |
 
 ## Options
 
-| Option | Default | What it does |
-| --- | --- | --- |
-| `BACK SIZE` | `MEDIUM` | How large the player stands in battle: `SMALL` 40x40, `MEDIUM` 48x48, `LARGE` 64x64 (Red's exact footprint). Takes effect on the next battle. With the voxel renderer installed, see below. |
-| `ADV. TINT` | `BLUE` | Which pokered-gbc object palette the avatar wears under the ADVANCED colour mode: `BLUE`, `RED`, `GREEN` or `BROWN`. |
+**Back Size** adjusts the player's battle sprite size. **Advanced Tint** selects the avatar palette used with ADVANCED color mode.
 
-All three take effect immediately -- the mod re-applies them off
-`mod.options_changed` rather than waiting for a reload.
+## Installation
+
+Install **Choose Your Avatar** through G1R Deluxe's mod browser, or import the mod ZIP manually.
